@@ -13,6 +13,8 @@ import {
     onLoadedProject,
     projectError
 } from '../reducers/project-state';
+import axios from 'axios';
+import queryString from 'query-string';
 
 /*
  * Higher Order Component to manage events emitted by the VM
@@ -44,15 +46,16 @@ const vmManagerHOC = function (WrappedComponent) {
             // and they weren't both that way until now... load project!
             if (this.props.isLoadingWithId && this.props.fontsLoaded &&
                 (!prevProps.isLoadingWithId || !prevProps.fontsLoaded)) {
-                this.loadProject();
+                const sbUrl = decodeURIComponent(queryString.parse(location.search).sbUrl || '');
+                sbUrl ? this.handleAxios(sbUrl) : this.loadProject();
             }
             // Start the VM if entering editor mode with an unstarted vm
             if (!this.props.isPlayerOnly && !this.props.isStarted) {
                 this.props.vm.start();
             }
         }
-        loadProject () {
-            return this.props.vm.loadProject(this.props.projectData)
+        loadProject (data) {
+            return this.props.vm.loadProject(data || this.props.projectData)
                 .then(() => {
                     this.props.onLoadedProject(this.props.loadingState, this.props.canSave);
                     // Wrap in a setTimeout because skin loading in
@@ -72,6 +75,20 @@ const vmManagerHOC = function (WrappedComponent) {
                 })
                 .catch(e => {
                     this.props.onError(e);
+                });
+        }
+        handleAxios (sbUrl) {
+            const _this = this;
+            axios.get(sbUrl, {
+                responseType: 'arraybuffer'
+            })
+                .then(res => {
+                    _this.loadProject(res.data);
+                })
+                .catch(e => {
+                    console.log(e);
+                    alert('加载作品失败');
+                    _this.loadProject();
                 });
         }
         render () {

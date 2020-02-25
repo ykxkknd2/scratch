@@ -4,7 +4,6 @@ import {compose} from 'redux';
 import {connect} from 'react-redux';
 import ReactModal from 'react-modal';
 import VM from 'scratch-vm';
-import axios from 'axios';
 import {injectIntl, intlShape} from 'react-intl';
 
 import ErrorBoundaryHOC from '../lib/error-boundary-hoc.jsx';
@@ -55,28 +54,6 @@ class GUI extends React.Component {
             // At this time the project view in www doesn't need to know when a project is unloaded
             this.props.onProjectLoaded();
         }
-    }
-    handleAxios (initUrl) {
-        const _this = this;
-        const sbUrl = initUrl.replace('vipcode-vts-scratch.oss-cn-beijing.aliyuncs.com', 'scratch.vipcode.com');
-        axios.get(sbUrl, {
-            responseType: 'arraybuffer'
-        })
-            .then(res => {
-                _this.props.vm.loadProject(res.data)
-                    .then(() => {
-                        this.props.vm.setCompatibilityMode(true);
-                        this.props.vm.start();
-                    })
-                    .catch(e => {
-                        console.error(e);
-                        alert('加载作品失败');
-                    });
-            })
-            .catch(e => {
-                console.log(e);
-                alert('加载作品失败');
-            });
     }
     render () {
         if (this.props.isError) {
