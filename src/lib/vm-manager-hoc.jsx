@@ -36,6 +36,32 @@ const vmManagerHOC = function (WrappedComponent) {
                 this.props.vm.setCompatibilityMode(true);
                 this.props.vm.initialized = true;
                 this.props.vm.setLocale(this.props.locale, this.props.messages);
+                window.loadProject = (function (url){
+                    if (!window.isProjectLoaded) return;
+                    if (!url){
+                        this.loadProject();
+                    } else {
+                        this.handleAxios(url);
+                    }
+                }).bind(this);
+                window.saveProject = (function (){
+                    const self = this;
+                    return new Promise((resolve, reject) => {
+                        self.props.vm.runtime.renderer.draw();
+                        const imageBase64 = this.props.vm.runtime.renderer._gl.canvas.toDataURL('image/png')
+
+                        self.props.vm.saveProjectSb3().then(blob => {
+                            if (blob.size === 0) reject('保存作品失败');
+
+                            const reader = new FileReader();
+                            reader.readAsArrayBuffer(blob);
+                            reader.onload = function (event) {
+                                const sb3Buffer = event.target.result;
+                                resolve({sb3Buffer, imageBase64});
+                            };
+                        });
+                    });
+                }).bind(this);
             }
             if (!this.props.isPlayerOnly && !this.props.isStarted) {
                 this.props.vm.start();
@@ -55,9 +81,17 @@ const vmManagerHOC = function (WrappedComponent) {
             }
         }
         loadProject (data) {
+            window.isProjectLoaded = false;
             return this.props.vm.loadProject(data || this.props.projectData)
                 .then(() => {
+                    try {
+                        window.isProjectLoaded = true;
+                        window.onProjectLoaded();
+                    } catch (e) {
+                        console.error('调用加载完毕回调函数onProjectLoaded失败', e);
+                    }
                     this.props.onLoadedProject(this.props.loadingState, this.props.canSave);
+
                     // Wrap in a setTimeout because skin loading in
                     // the renderer can be async.
                     setTimeout(() => this.props.onSetProjectUnchanged());
@@ -78,6 +112,7 @@ const vmManagerHOC = function (WrappedComponent) {
                 });
         }
         handleAxios (sbUrl) {
+            window.isProjectLoaded = false;
             const _this = this;
             axios.get(sbUrl, {
                 responseType: 'arraybuffer'
