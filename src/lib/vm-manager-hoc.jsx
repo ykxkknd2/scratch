@@ -28,6 +28,7 @@ const vmManagerHOC = function (WrappedComponent) {
             bindAll(this, [
                 'loadProject'
             ]);
+            this.projectCache = {};
         }
         componentDidMount () {
             if (!this.props.vm.initialized) {
@@ -113,11 +114,16 @@ const vmManagerHOC = function (WrappedComponent) {
         }
         handleAxios (sbUrl) {
             window.isProjectLoaded = false;
+            if (this.projectCache[sbUrl]) {
+                this.loadProject(this.projectCache[sbUrl])
+                return;
+            }
             const _this = this;
             axios.get(sbUrl, {
                 responseType: 'arraybuffer'
             })
                 .then(res => {
+                    this.projectCache[sbUrl] = res.data;
                     _this.loadProject(res.data);
                 })
                 .catch(e => {
